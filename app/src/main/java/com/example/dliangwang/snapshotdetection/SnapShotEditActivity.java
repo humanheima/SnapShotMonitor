@@ -1,10 +1,15 @@
 package com.example.dliangwang.snapshotdetection;
 
 import android.graphics.Bitmap;
+import android.graphics.Bitmap.Config;
+import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewTreeObserver;
@@ -23,6 +28,9 @@ import static com.example.dliangwang.snapshotdetection.CallBack.SnapShotTakeCall
  */
 
 public class SnapShotEditActivity extends AppCompatActivity {
+
+    private static final String TAG = "SnapShotEditActivity";
+
     private String snapShotPath;
     private PaintableImageView imageView;
 
@@ -82,16 +90,50 @@ public class SnapShotEditActivity extends AppCompatActivity {
      * 根据ImageView实际高度对图片进行等比例压缩，并调整IamgeView尺寸和Bitmap尺寸一致
      */
     private void autoFitImageView() {
-        int imageViewHeight = imageView.getHeight();
+        //int imageViewHeight = imageView.getHeight();
 
-        Bitmap compressedBitmap = BitmapUtils.getCompressedBitmap(SNAP_SHOT_FOLDER_PATH + snapShotPath, imageViewHeight);
+        int imageViewHeight = ScreenUtil.getScreenHeight(this);
+        Bitmap compressedBitmap = BitmapUtils
+                .getCompressedBitmap(SNAP_SHOT_FOLDER_PATH + snapShotPath, imageViewHeight);
 
         if (null != compressedBitmap) {
-            LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(compressedBitmap.getWidth(), compressedBitmap.getHeight());
-            layoutParams.gravity = Gravity.CENTER;
-            imageView.setLayoutParams(layoutParams);
-            imageView.requestLayout();
-            imageView.setImageBitmap(compressedBitmap);
+            int width = compressedBitmap.getWidth();
+            int height = compressedBitmap.getHeight();
+            Bitmap qrcode = generateQRCode();
+            if (qrcode != null) {
+                int qrcodeHeight = qrcode.getHeight();
+                Log.i(TAG, "autoFitImageView: qrcodeHeight = " + qrcodeHeight);
+                LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(width, height + qrcodeHeight);
+
+                Bitmap bitmap = Bitmap.createBitmap(width, height + qrcodeHeight, Config.RGB_565);
+                Canvas canvas = new Canvas();
+                canvas.setBitmap(bitmap);
+                canvas.drawColor(Color.WHITE);
+                canvas.drawBitmap(compressedBitmap, 0, 0, null);
+                canvas.drawBitmap(qrcode, 0, height, null);
+
+                Bitmap logo = BitmapFactory.decodeResource(getResources(), R.drawable.ic_launcher);
+                canvas.drawBitmap(logo, 144, height, null);
+
+                layoutParams.gravity = Gravity.CENTER;
+                imageView.setLayoutParams(layoutParams);
+                imageView.requestLayout();
+                imageView.setImageBitmap(bitmap);
+                //bitmap.recycle();
+            }
         }
+    }
+
+    private Bitmap generateQRCode() {
+        int width = 144;
+        String filePath = getFilesDir().toString() + "qrcode" + System.currentTimeMillis();
+        Bitmap logo = BitmapFactory.decodeResource(getResources(), R.drawable.ic_launcher);
+        QRCodeUtil.createQRImage("http://www.baidu.com", width, width, logo, filePath,
+                Color.parseColor("#4D4D4D"),
+                Color.parseColor("#FFFFFF"), 16);
+
+        Bitmap qrcode = BitmapFactory.decodeFile(filePath);
+
+        return qrcode;
     }
 }

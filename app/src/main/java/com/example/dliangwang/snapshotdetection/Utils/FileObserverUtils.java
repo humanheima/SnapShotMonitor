@@ -1,9 +1,11 @@
 package com.example.dliangwang.snapshotdetection.Utils;
 
 import android.graphics.BitmapFactory;
+import android.os.Build;
 import android.os.Environment;
 import android.os.FileObserver;
 
+import android.util.Log;
 import com.example.dliangwang.snapshotdetection.CallBack.ISnapShotCallBack;
 
 import java.io.File;
@@ -13,6 +15,11 @@ import java.io.File;
  */
 
 public class FileObserverUtils {
+
+    private static final String TAG = "FileObserverUtils";
+
+    private static final String HUAWEI = "HUAWEI";
+
     private static FileObserver fileObserver;
     private static ISnapShotCallBack snapShotCallBack;
     public static String SNAP_SHOT_FOLDER_PATH;
@@ -25,14 +32,27 @@ public class FileObserverUtils {
     }
 
     private static void initFileObserver() {
-        SNAP_SHOT_FOLDER_PATH = Environment.getExternalStorageDirectory()
-                + File.separator + Environment.DIRECTORY_PICTURES
-                + File.separator + "Screenshots" + File.separator;
+//        SNAP_SHOT_FOLDER_PATH = Environment.getExternalStorageDirectory()
+//                + File.separator + Environment.DIRECTORY_PICTURES
+//                + File.separator + "Screenshots" + File.separator;
+        String name = Build.MANUFACTURER;
+        if (HUAWEI.equalsIgnoreCase(name)) {
+            Log.i(TAG, "initFileObserver: 华为设备");
+            SNAP_SHOT_FOLDER_PATH = Environment.getExternalStorageDirectory()
+                    + File.separator + Environment.DIRECTORY_PICTURES
+                    + File.separator + "Screenshots" + File.separator;
+        } else {
+            SNAP_SHOT_FOLDER_PATH = Environment.getExternalStorageDirectory()
+                    + File.separator + Environment.DIRECTORY_DCIM
+                    + File.separator + "Screenshots" + File.separator;
+        }
+
+        Log.i(TAG, "initFileObserver: SNAP_SHOT_FOLDER_PATH = " + SNAP_SHOT_FOLDER_PATH);
 
         fileObserver = new FileObserver(SNAP_SHOT_FOLDER_PATH, FileObserver.CREATE) {
             @Override
             public void onEvent(int event, String path) {
-                if (null != path && event == FileObserver.CREATE && (!path.equals(lastShownSnapshot))){
+                if (null != path && event == FileObserver.CREATE && (!path.equals(lastShownSnapshot))) {
                     lastShownSnapshot = path; // 有些手机同一张截图会触发多个CREATE事件，避免重复展示
 
                     String snapShotFilePath = SNAP_SHOT_FOLDER_PATH + path;
@@ -65,7 +85,8 @@ public class FileObserverUtils {
 
     public static void startSnapshotWatching() {
         if (null == snapShotCallBack) {
-            throw new ExceptionInInitializerError("Call FileObserverUtils.setSnapShotCallBack first to setup callback!");
+            throw new ExceptionInInitializerError(
+                    "Call FileObserverUtils.setSnapShotCallBack first to setup callback!");
         }
 
         fileObserver.startWatching();
@@ -73,7 +94,8 @@ public class FileObserverUtils {
 
     public static void stopSnapshotWatching() {
         if (null == snapShotCallBack) {
-            throw new ExceptionInInitializerError("Call FileObserverUtils.setSnapShotCallBack first to setup callback!");
+            throw new ExceptionInInitializerError(
+                    "Call FileObserverUtils.setSnapShotCallBack first to setup callback!");
         }
 
         fileObserver.stopWatching();
